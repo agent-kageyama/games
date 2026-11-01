@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>エージェント影山｜ティッシュ手裏剣</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;background:#1b1d22;font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",Meiryo,sans-serif;color:#222;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+  #wrap{position:relative;width:min(100vw,56.25vh);height:min(100vh,177.78vw);margin:0 auto;top:50%;transform:translateY(-50%);background:#e9e4d8;overflow:hidden}
+  canvas{display:block;width:100%;height:100%}
+  #hud{position:absolute;top:0;left:0;right:0;padding:8px 10px;display:flex;gap:6px;pointer-events:none;font-weight:700}
+  .pill{background:rgba(20,22,28,.82);color:#fff;border-radius:10px;padding:5px 8px;font-size:13px;line-height:1.2;flex:1;text-align:center}
+  .pill b{font-size:18px;display:block;white-space:nowrap}
+  #hBug{letter-spacing:.15em}
+  #susWrap{position:absolute;top:62px;left:10px;right:10px;height:14px;background:rgba(20,22,28,.6);border-radius:7px;overflow:hidden;pointer-events:none}
+  #sus{height:100%;width:0;background:linear-gradient(90deg,#f5c542,#e2453c);transition:width .1s}
+  #susLbl{position:absolute;top:0;left:8px;font-size:10px;color:#fff;line-height:14px;font-weight:700}
+  #ammo{position:absolute;bottom:12px;right:12px;width:96px;height:96px;border-radius:50%;border:4px solid #fff;font-weight:800;font-size:14px;color:#fff;box-shadow:0 4px 0 rgba(0,0,0,.35);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
+  #ammo.tissue{background:#4aa3df}
+  #ammo.bug{background:#c0392b}
+  #obj{position:absolute;top:82px;left:10px;right:10px;text-align:center;font-weight:800;font-size:14px;padding:6px 8px;border-radius:8px;background:rgba(20,22,28,.78);color:#fff;pointer-events:none}
+  #obj.vip{background:#c0392b;animation:blink .5s infinite alternate}
+  #obj.done{background:#2e8b57}
+  @keyframes blink{to{opacity:.65}}
+  #ammo.pulse{animation:pulse .5s infinite alternate}
+  @keyframes pulse{to{transform:scale(1.12);box-shadow:0 0 0 6px rgba(255,90,80,.6)}}
+  .pill.ok{background:rgba(46,139,87,.9)}
+  #brief{position:absolute;left:30px;right:30px;top:36%;background:#f3eee2;border-radius:10px;padding:16px;text-align:center;box-shadow:0 4px 0 #000;pointer-events:none}
+  #brief .bt{font-size:13px;letter-spacing:.3em;color:#c0392b;font-weight:800;margin-bottom:8px}
+  #brief .bl{font-size:19px;font-weight:800;line-height:1.7}
+  #brief .bl b{color:#c0392b;font-size:23px}
+  #brief .bs{font-size:12px;color:#666;margin-top:6px}
+  #ammo small{font-size:10px;opacity:.85}
+  #ammo .ic{font-size:26px;line-height:1}
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;background:rgba(18,20,26,.88);color:#fff}
+  .hidden{display:none!important}
+  h1{font-size:30px;line-height:1.25;letter-spacing:.02em}
+  h1 span{display:block;font-size:14px;color:#f5c542;letter-spacing:.2em;margin-bottom:6px}
+  .brief{background:#f3eee2;color:#222;border-radius:6px;padding:14px 18px;margin:16px 0;text-align:left;font-size:16px;line-height:1.9;max-width:320px;position:relative;box-shadow:0 3px 0 #000}
+  .brief:before{content:"極秘";position:absolute;top:-10px;right:10px;background:#c0392b;color:#fff;font-size:11px;padding:2px 8px;border-radius:3px;transform:rotate(4deg)}
+  .brief b{color:#c0392b}
+  .btn{background:#f5c542;color:#222;border:none;border-radius:999px;font-size:20px;font-weight:800;padding:14px 40px;box-shadow:0 4px 0 #9b7a1c;cursor:pointer;font-family:inherit;margin-top:6px}
+  .btn:active{transform:translateY(3px);box-shadow:0 1px 0 #9b7a1c}
+  .btn.sub{background:#fff;font-size:15px;padding:10px 24px;box-shadow:0 3px 0 #888}
+  #result{justify-content:flex-start;padding-top:22px}
+  #resTitle{font-size:26px;margin-bottom:2px}
+  #resRank{font-size:14px;color:#f5c542;margin-bottom:8px}
+  #boss{display:flex;align-items:flex-end;gap:6px;width:100%;max-width:330px;margin-bottom:0}
+  #bossFig{width:104px;flex:none}
+  #bossFig svg{display:block;width:100%;height:auto}
+  #bossFig.angry svg{animation:shake .25s 4}
+  #bossFig.happy svg{animation:hop .5s 2}
+  @keyframes shake{25%{transform:translateX(-4px) rotate(-2deg)}75%{transform:translateX(4px) rotate(2deg)}}
+  @keyframes hop{50%{transform:translateY(-8px)}}
+  #bossTalk{flex:1;background:#fff;color:#222;border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.55;text-align:left;position:relative;margin-bottom:40px;font-weight:700}
+  #bossTalk:before{content:"";position:absolute;left:-9px;bottom:16px;border:6px solid transparent;border-right:10px solid #fff;border-left:0}
+  #bossTalk .nm{display:block;font-size:10px;color:#888;font-weight:400;margin-bottom:2px}
+  #bossTalk.angry{background:#ffe3df}#bossTalk.angry:before{border-right-color:#ffe3df}
+  #kage{display:flex;align-items:flex-end;gap:6px;width:100%;max-width:330px;margin:-30px 0 8px}
+  #kageFig{width:84px;flex:none}
+  #kageFig svg{display:block;width:100%;height:auto}
+  #kageFig.panic svg{animation:shake .2s 5}
+  #kageTalk{flex:1;background:rgba(255,255,255,.12);border:2px dashed rgba(255,255,255,.55);color:#fff;border-radius:18px;padding:8px 12px;font-size:13px;line-height:1.55;text-align:left;margin-bottom:30px;position:relative}
+  #kageTalk .nm{display:block;font-size:10px;color:#f5c542;margin-bottom:2px}
+  #kageTalk:after{content:"";position:absolute;right:-12px;bottom:6px;width:8px;height:8px;border-radius:50%;border:2px dashed rgba(255,255,255,.55)}
+  #resStats{background:#f3eee2;color:#222;border-radius:6px;padding:6px 14px;font-size:13px;line-height:1.6;min-width:260px;text-align:left;margin-bottom:10px}
+  #resStats .big{font-size:22px;font-weight:800;text-align:center;display:block}
+  .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+  #copied{font-size:12px;color:#9fe0a5;height:16px;margin-top:6px}
+  a.btn{text-decoration:none;display:inline-block}
+  .tip{font-size:12px;opacity:.75;margin-top:12px;line-height:1.6}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="cv"></canvas>
+  <div id="hud" class="hidden">
+    <div class="pill">TIME<b id="hTime">30.0</b></div>
+    <div class="pill" id="pTis">🧻 ティッシュ<b id="hTis">あと10</b></div>
+    <div class="pill" id="pBug">📡 盗聴器<b id="hBug">○○</b></div>
+  </div>
+  <div id="susWrap" class="hidden"><div id="sus"></div><div id="susLbl">怪しさ</div></div>
+  <div id="obj" class="hidden"></div>
+  <div id="brief" class="hidden"><div class="bt">MISSION</div><div class="bl">🧻 ティッシュを <b>10個</b> 配る</div><div class="bl">📡 <b>要人2人</b> に盗聴器</div><div class="bs">黒スーツ＋サングラスが要人／顔に当てるのはNG</div></div>
+  <div id="ammo" class="tissue hidden"><span class="ic">🧻</span>ティッシュ<small>タップで切替</small></div>
+
+  <div id="title" class="screen">
+    <h1><span>AGENT KAGEYAMA</span>ティッシュ手裏剣</h1>
+    <div class="brief">
+      駅前でティッシュ配りに潜入せよ。<br>
+      🧻 <b>スワイプ</b>でカバンや服に投げ入れろ<br>
+      🕶 <b>要人</b>には📡<b>盗聴器</b>を
+    </div>
+    <button class="btn" id="startBtn">任務開始</button>
+    <div class="tip">速くはらうほど遠くへ飛ぶ</div>
+  </div>
+
+  <div id="result" class="screen hidden">
+    <div id="resTitle">MISSION COMPLETE</div>
+    <div id="resRank"></div>
+    <div id="boss"><div id="bossFig"></div><div id="bossTalk"></div></div>
+    <div id="kage"><div id="kageTalk"></div><div id="kageFig"></div></div>
+    <div id="resStats"></div>
+    <div class="row">
+      <button class="btn" id="retryBtn">もう一度</button>
+    </div>
+    <div class="row">
+      <button class="btn sub" id="copyBtn">結果をコピー</button>
+      <a class="btn sub" id="xBtn" target="_blank" rel="noopener">Xでシェア</a>
+    </div>
+    <div id="copied"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+const W = 360, H = 640;
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const $ = id => document.getElementById(id);
+let scale = 1;
+function resize(){
+  const r = cv.getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  cv.width = Math.round(r.width * dpr);
+  cv.height = Math.round(r.height * dpr);
+  scale = cv.width / W;
+}
+window.addEventListener('resize', resize);
+
+// ---------- 設定 ----------
+const QUOTA_T = 10, QUOTA_B = 2, LIMIT = 30;
+const LANES = [
+  {y:250, s:0.62},
+  {y:320, s:0.76},
+  {y:395, s:0.9},
+  {y:470, s:1.04},
+];
+const HERO = {x:180, y:575};
+const COATS = ['#7a8fa6','#b7695c','#6f9a6b','#c9a24b','#8a6fa8','#d48aa0','#5c6b7a','#a0785a'];
+const BAGS = ['tote','hand','back','shop'];
+
+// ---------- 状態 ----------
+let state = 'title';
+let t, tissues, bugs, susp, combo, maxCombo, score, throws, hits, ammo;
+let peds, shots, fx, spawnT, vipLeft, lastTime, cool, endReason, clearTime, shake;
+
+function reset(){
+  t = LIMIT; tissues = 0; bugs = 0; susp = 0; combo = 0; maxCombo = 0; score = 0;
+  throws = 0; hits = 0; ammo = 'tissue';
+  peds = []; shots = []; fx = []; spawnT = 0; noVipT = 0; cool = 0; shake = 0;
+  vipLeft = 0; endReason = ''; clearTime = 0;
+  setAmmo('tissue');
+  // 最初から何人か歩かせる
+  for (let i = 0; i < 3; i++) spawn(true);
+}
+
+function spawn(pre, forceVip){
+  const li = Math.floor(Math.random()*LANES.length);
+  const lane = LANES[li];
+  const dir = Math.random() < .5 ? 1 : -1;
+  // 要人の出現率：時間経過＆不足分で調整
+  const needBug = QUOTA_B - bugs;
+  const vipOnScreen = peds.filter(p => p.vip && !p.bugged).length;
+  let vipChance = needBug > 0 ? 0.13 : 0.08;
+  if (needBug > 0 && vipOnScreen === 0) vipChance = 0.2;
+  if (needBug > 0 && vipOnScreen === 0 && (tissues >= QUOTA_T || t < LIMIT*0.5)) vipChance = 0.5;
+  const vip = forceVip || (Math.random() < vipChance && vipOnScreen < 2);
+  const speed = (vip ? 55 : 45 + Math.random()*70) * lane.s * (1 + (LIMIT - t)/60);
+  const p = {
+    lane: li, y: lane.y, s: lane.s, dir,
+    x: pre ? 40 + Math.random()*280 : (dir === 1 ? -40 : W + 40),
+    vx: speed * dir,
+    vip,
+    coat: vip ? '#1d1f24' : COATS[Math.floor(Math.random()*COATS.length)],
+    bag: vip ? 'brief' : BAGS[Math.floor(Math.random()*BAGS.length)],
+    hair: ['#2b2420','#3b2f2a','#6b4a2f','#999'][Math.floor(Math.random()*4)],
+    got: false, bugged: false, alert: false,
+    react: '', reactT: 0, phase: Math.random()*6,
+    stop: 0,
+  };
+  peds.push(p);
+}
+
+// 当たり判定用：カバン/体の矩形
+function bagRect(p){
+  const s = p.s;
+  const side = p.dir;            // 進行方向側に手、カバンは後ろ寄り
+  let bw = 26*s, bh = 22*s, bx, by;
+  if (p.bag === 'back'){ bx = p.x - side*16*s - bw/2; by = p.y - 62*s; bw = 22*s; bh = 30*s; }
+  else if (p.bag === 'brief'){ bx = p.x - side*20*s - bw/2; by = p.y - 30*s; bw = 30*s; bh = 22*s; }
+  else if (p.bag === 'shop'){ bx = p.x - side*20*s - bw/2; by = p.y - 36*s; bw = 26*s; bh = 30*s; }
+  else if (p.bag === 'tote'){ bx = p.x - side*18*s - bw/2; by = p.y - 50*s; bw = 26*s; bh = 26*s; }
+  else { bx = p.x - side*20*s - bw/2; by = p.y - 40*s; bw = 24*s; bh = 18*s; }
+  return {x:bx, y:by, w:bw, h:bh};
+}
+function bodyRect(p){
+  const s = p.s;
+  return {x:p.x - 15*s, y:p.y - 100*s, w:30*s, h:100*s};
+}
+function inR(r, x, y, pad=0){ return x >= r.x-pad && x <= r.x+r.w+pad && y >= r.y-pad && y <= r.y+r.h+pad; }
+
+// ---------- 入力 ----------
+function toGame(e){
+  const r = cv.getBoundingClientRect();
+  return {x:(e.clientX - r.left)/r.width*W, y:(e.clientY - r.top)/r.height*H};
+}
+// スワイプ：向き＝スワイプ方向、飛距離＝スワイプの速さ
+let swipe = null;
+const HAND = () => ({x: HERO.x + 22, y: HERO.y - 70});
+function swipeVel(){
+  // 直近80msのサンプルから速度を出す
+  const s = swipe.samples, last = s[s.length-1];
+  let i = s.length - 1;
+  while (i > 0 && last.t - s[i-1].t < 80) i--;
+  const first = s[Math.max(0, i-1)];
+  const dt = Math.max(16, last.t - first.t) / 1000;
+  return Math.hypot(last.x - first.x, last.y - first.y) / dt;
+}
+function powerToDist(v){ return Math.max(40, Math.min(480, 40 + (v - 150) * 0.2)); }
+function swipeDir(){
+  const s = swipe.samples, a = s[0], b = s[s.length-1];
+  const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy);
+  return len < 12 ? null : {x: dx/len, y: dy/len, len};
+}
+cv.addEventListener('pointerdown', e => {
+  if (state !== 'play' || briefT > 0) return;
+  e.preventDefault();
+  try { cv.setPointerCapture(e.pointerId); } catch(_){}
+  const p = toGame(e);
+  swipe = {samples: [{x:p.x, y:p.y, t:performance.now()}]};
+});
+cv.addEventListener('pointermove', e => {
+  if (!swipe) return;
+  const p = toGame(e);
+  swipe.samples.push({x:p.x, y:p.y, t:performance.now()});
+  if (swipe.samples.length > 40) swipe.samples.splice(1, 1);
+});
+function endSwipe(e){
+  if (!swipe) return;
+  if (state === 'play'){
+    const p = toGame(e);
+    swipe.samples.push({x:p.x, y:p.y, t:performance.now()});
+    const d = swipeDir();
+    if (d && d.y < -0.15){
+      const dist = powerToDist(swipeVel());
+      const h = HAND();
+      throwAt(h.x + d.x * dist, h.y + d.y * dist);
+    } else if (d === null) {
+      tapHint = 1.2;
+    }
+  }
+  swipe = null;
+}
+cv.addEventListener('pointerup', endSwipe);
+cv.addEventListener('pointercancel', () => swipe = null);
+let tapHint = 0, briefT = 0, noVipT = 0;
+$('ammo').addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); if (state==='play') toggleAmmo(); });
+window.addEventListener('keydown', e => {
+  if (e.code === 'Space'){ e.preventDefault(); if (state==='play') toggleAmmo(); }
+});
+function toggleAmmo(){ setAmmo(ammo === 'tissue' ? 'bug' : 'tissue'); sfx('switch'); }
+function setAmmo(a){
+  ammo = a;
+  const b = $('ammo');
+  b.className = a;
+  b.innerHTML = a === 'tissue'
+    ? '<span class="ic">🧻</span>ティッシュ<small>タップで切替</small>'
+    : '<span class="ic">📡</span>盗聴器<small>タップで切替</small>';
+}
+
+function throwAt(x, y){
+  if (cool > 0) return;
+  cool = 0.12;
+  throws++;
+  const sx = HERO.x + 22, sy = HERO.y - 70;
+  const d = Math.hypot(x - sx, y - sy);
+  shots.push({type:ammo, sx, sy, tx:x, ty:y, t:0, dur: Math.max(0.14, d/950), rot:0});
+  heroThrow = 0.18;
+  sfx('throw');
+}
+
+// ---------- 着弾 ----------
+function land(sh){
+  // 手前のレーンから判定
+  const order = peds.slice().sort((a,b) => b.y - a.y);
+  for (const p of order){
+    const br = bagRect(p);
+    if (inR(br, sh.tx, sh.ty, 12*p.s)){
+      return hitBag(p, sh);
+    }
+  }
+  for (const p of order){
+    if (inR(bodyRect(p), sh.tx, sh.ty, 9*p.s)){
+      // 首より上はアウト、服ならポッケにIN
+      if (sh.ty < p.y - 82*p.s) return hitBody(p, sh);
+      return hitBag(p, sh, true);
+    }
+  }
+  // 地面に落ちた
+  combo = 0;
+  fx.push({kind:'drop', type:sh.type, x:sh.tx, y:sh.ty, t:0});
+}
+
+function hitBag(p, sh, pocket){
+  const br = bagRect(p);
+  const cx = pocket ? sh.tx : br.x + br.w/2, cy = pocket ? sh.ty : br.y;
+  const IN = pocket ? 'ポッケIN!' : 'IN!';
+  if (sh.type === 'tissue'){
+    if (p.vip){
+      // 要人にティッシュ：警戒される
+      if (!p.alert){ p.alert = true; }
+      addSusp(14);
+      say(p, '…何だ？', '#c0392b');
+      combo = 0;
+      pop(cx, cy, '要人に警戒された！', '#ff6b5b');
+      sfx('bad');
+      return;
+    }
+    if (p.got){
+      say(p, 'もう持ってる', '#555');
+      combo = 0;
+      pop(cx, cy, 'ダブり', '#ccc');
+      return;
+    }
+    p.got = true; p.pocket = !!pocket; p.pocketY = pocket ? (sh.ty - p.y) / p.s : 0; tissues++; hits++; combo++; maxCombo = Math.max(maxCombo, combo);
+    const pts = 100 * Math.min(combo, 10);
+    score += pts;
+    say(p, ['あ、どうも','？','いつの間に','ラッキー','…え？'][Math.floor(Math.random()*5)], '#333');
+    pop(cx, cy, combo > 1 ? `${IN} x${combo}` : IN, '#ffffff');
+    sfx('in');
+  } else {
+    if (!p.vip){
+      addSusp(18);
+      combo = 0;
+      say(p, 'なんか入った…？', '#c0392b');
+      pop(cx, cy, '一般人に盗聴器！', '#ff6b5b');
+      sfx('bad');
+      return;
+    }
+    if (p.bugged){ pop(cx, cy, '設置済み', '#ccc'); return; }
+    if (p.alert){
+      addSusp(20);
+      say(p, '貴様、何者だ', '#c0392b');
+      pop(cx, cy, '警戒中で失敗！', '#ff6b5b');
+      sfx('bad');
+      return;
+    }
+    p.bugged = true; bugs++; hits++; combo++; maxCombo = Math.max(maxCombo, combo);
+    score += 1500;
+    pop(cx, cy, pocket ? 'ポッケに盗聴器 設置完了' : '盗聴器 設置完了', '#7dffb0');
+    fx.push({kind:'radio', p, t:0});
+    sfx('bug');
+  }
+  if (tissues >= QUOTA_T && bugs >= QUOTA_B) finish('clear');
+}
+
+function hitBody(p, sh){
+  combo = 0;
+  const r = bodyRect(p);
+  addSusp(12);
+  p.stop = 0.5;
+  say(p, '痛っ！', '#c0392b');
+  pop(sh.tx, sh.ty, '顔面ヒット…', '#ffb35b');
+  fx.push({kind:'drop', type:sh.type, x:sh.tx, y:p.y - 4, t:0});
+  shake = 0.2;
+  sfx('bad');
+}
+
+function addSusp(v){
+  susp = Math.min(100, susp + v);
+  if (susp >= 100) finish('busted');
+}
+function say(p, txt, col){ p.react = txt; p.reactCol = col; p.reactT = 1.3; }
+function pop(x, y, txt, col){ fx.push({kind:'pop', x, y, txt, col, t:0}); }
+
+// ---------- ループ ----------
+let heroThrow = 0;
+function update(dt){
+  if (state !== 'play') return;
+  if (briefT > 0){
+    briefT -= dt;
+    if (briefT <= 0) $('brief').classList.add('hidden');
+    updateHud();
+    return;
+  }
+  t -= dt;
+  cool = Math.max(0, cool - dt);
+  heroThrow = Math.max(0, heroThrow - dt);
+  tapHint = Math.max(0, tapHint - dt);
+  shake = Math.max(0, shake - dt);
+  susp = Math.max(0, susp - dt * 1.5);
+  if (t <= 0){ t = 0; finish('timeup'); return; }
+
+  spawnT -= dt;
+  if (spawnT <= 0){
+    if (peds.length < 7) spawn(false);
+    spawnT = 0.9 + Math.random()*0.6 - (LIMIT - t)/LIMIT*0.25;
+  }
+  // 盗聴器が残っているのに要人がいない時間が続いたら、要人を呼ぶ
+  if (bugs < QUOTA_B && !peds.some(p => p.vip && !p.bugged && !p.alert)){
+    noVipT += dt;
+    if (noVipT > 3){ spawn(false, true); noVipT = 0; }
+  } else noVipT = 0;
+  for (const p of peds){
+    p.phase += dt * 8;
+    if (p.stop > 0){ p.stop -= dt; continue; }
+    p.x += p.vx * dt * (p.alert ? 1.6 : 1);
+    p.reactT = Math.max(0, p.reactT - dt);
+  }
+  peds = peds.filter(p => p.x > -80 && p.x < W + 80);
+
+  for (const sh of shots){
+    sh.t += dt; sh.rot += dt * 30;
+    if (sh.t >= sh.dur && !sh.done){ sh.done = true; land(sh); if (state !== 'play') return; }
+  }
+  shots = shots.filter(s => !s.done);
+  for (const f of fx) f.t += dt;
+  fx = fx.filter(f => f.t < (f.kind === 'drop' ? 1.5 : f.kind === 'radio' ? 1.6 : 0.9));
+  updateHud();
+}
+
+function updateHud(){
+  $('hTime').textContent = t.toFixed(1);
+  const leftT = Math.max(0, QUOTA_T - tissues), leftB = Math.max(0, QUOTA_B - bugs);
+  $('hTis').textContent = leftT ? `あと${leftT}` : '完了✔';
+  $('hBug').textContent = leftB ? '●'.repeat(bugs) + '○'.repeat(leftB) : '完了✔';
+  $('pTis').classList.toggle('ok', !leftT);
+  $('pBug').classList.toggle('ok', !leftB);
+  // 今やること
+  const vipHere = peds.some(p => p.vip && !p.bugged && !p.alert && p.x > 10 && p.x < W - 10);
+  const o = $('obj');
+  let txt, cls = '';
+  if (leftB && vipHere){
+    txt = ammo === 'bug' ? '🕶 要人発見！ カバンに盗聴器を投げろ' : '🕶 要人発見！ 右下で📡盗聴器に切り替え';
+    cls = 'vip';
+  } else if (!leftT && leftB){
+    txt = `ティッシュ完了！ あとは要人に盗聴器 ${leftB}個`;
+  } else if (leftT && !leftB){
+    txt = `盗聴器完了！ あとはティッシュ ${leftT}個`; cls = 'done';
+  } else {
+    txt = `要人が来たら盗聴器（あと${leftB}人）`;
+  }
+  if (o.textContent !== txt) o.textContent = txt;
+  o.className = cls;
+  $('ammo').classList.toggle('pulse', !!(leftB && vipHere && ammo !== 'bug'));
+  $('hTime').style.color = t < 10 ? '#ff6b5b' : '#fff';
+  $('sus').style.width = susp + '%';
+}
+
+// ---------- 描画 ----------
+function draw(){
+  ctx.setTransform(scale,0,0,scale,0,0);
+  if (shake > 0) ctx.translate((Math.random()-.5)*6, (Math.random()-.5)*6);
+  drawBg();
+  // 奥から描画
+  const list = peds.slice().sort((a,b) => a.y - b.y);
+  for (const f of fx) if (f.kind === 'drop') drawDrop(f);
+  for (const p of list) drawPed(p);
+  drawHero();
+  for (const sh of shots) drawShot(sh);
+  for (const f of fx){
+    if (f.kind === 'pop') drawPop(f);
+    if (f.kind === 'radio') drawRadio(f);
+  }
+  for (const p of list) if (p.reactT > 0) drawBubble(p);
+  if (state === 'play' && swipe) drawAim();
+  if (state === 'play' && (briefT <= 0 && t > LIMIT - 3 || tapHint > 0)) drawHint();
+}
+
+function drawAim(){
+  const d = swipeDir(); if (!d || d.y >= -0.15) return;
+  const v = swipeVel(), dist = powerToDist(v), h = HAND();
+  const ex = h.x + d.x * dist, ey = h.y + d.y * dist;
+  const k = (dist - 30) / 490;
+  const col = `hsl(${120 - k*120},85%,50%)`;
+  ctx.save();
+  ctx.setLineDash([6,6]); ctx.lineWidth = 3; ctx.strokeStyle = col;
+  ctx.beginPath(); ctx.moveTo(h.x, h.y); ctx.lineTo(ex, ey); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(ex, ey, 9, 0, Math.PI*2); ctx.stroke();
+  ctx.restore();
+}
+
+function drawBg(){
+  // 空とビル
+  ctx.fillStyle = '#cfd8dc'; ctx.fillRect(0,0,W,200);
+  const blds = [[0,70,80,'#9aa5ad'],[70,40,70,'#b4bcc2'],[130,95,100,'#8e989f'],[220,55,60,'#a9b2b8'],[275,30,85,'#97a1a8']];
+  for (const [x,y,w,c] of blds){
+    ctx.fillStyle = c; ctx.fillRect(x,y,w,200-y);
+    ctx.fillStyle = 'rgba(255,255,255,.35)';
+    for (let yy=y+10; yy<190; yy+=18) for (let xx=x+8; xx<x+w-10; xx+=16) ctx.fillRect(xx,yy,8,10);
+  }
+  // 駅の看板
+  ctx.fillStyle = '#2d5c88'; ctx.fillRect(105,120,150,34);
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 18px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('影 山 駅', 180, 144);
+  ctx.fillStyle = '#5b6168'; ctx.fillRect(100,154,160,46);
+  ctx.fillStyle = '#2a2d31'; ctx.fillRect(130,164,100,36);
+  // 歩道
+  ctx.fillStyle = '#d9d2c3'; ctx.fillRect(0,200,W,H-200);
+  ctx.strokeStyle = 'rgba(0,0,0,.07)'; ctx.lineWidth = 1;
+  for (let y = 210; y < H; y += 26){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  for (let x = 0; x < W; x += 36){ ctx.beginPath(); ctx.moveTo(x,200); ctx.lineTo(x,H); ctx.stroke(); }
+  // 点字ブロック
+  ctx.fillStyle = '#e8c547'; ctx.fillRect(0,505,W,14);
+  ctx.fillStyle = 'rgba(0,0,0,.12)';
+  for (let x=4;x<W;x+=8) ctx.fillRect(x,509,4,6);
+}
+
+function drawPed(p){
+  const s = p.s, x = p.x, y = p.y;
+  const step = p.stop > 0 ? 0 : Math.sin(p.phase);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(s, s);
+  // 影
+  ctx.fillStyle = 'rgba(0,0,0,.15)';
+  ctx.beginPath(); ctx.ellipse(0,0,20,5,0,0,Math.PI*2); ctx.fill();
+  // 脚
+  ctx.strokeStyle = p.vip ? '#111' : '#3b3f46'; ctx.lineWidth = 7; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-4,-38); ctx.lineTo(-4 + step*7, -3); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(4,-38); ctx.lineTo(4 - step*7, -3); ctx.stroke();
+  // 胴
+  ctx.fillStyle = p.coat;
+  rr(-15,-82,30,46,8); ctx.fill();
+  if (p.vip){
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.moveTo(-5,-82); ctx.lineTo(5,-82); ctx.lineTo(0,-68); ctx.fill();
+    ctx.fillStyle = '#b3202a'; ctx.fillRect(-1.5,-78,3,12);
+  }
+  // バッグ（背面にあるバックパックは胴の前に描く方が見やすい）
+  drawBag(p);
+  // 頭
+  ctx.fillStyle = '#f2d2b1';
+  ctx.beginPath(); ctx.arc(0,-96,14,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = p.vip ? '#111' : p.hair;
+  ctx.beginPath(); ctx.arc(0,-99,14,Math.PI*1.05,Math.PI*1.95); ctx.fill();
+  // 顔（進行方向を向く）
+  const fx_ = p.dir * 5;
+  if (p.vip){
+    ctx.fillStyle = '#111'; rr(fx_-9,-100,18,6,2); ctx.fill();
+    // 要人マーカー
+    if (!p.bugged){
+      const blink = (Math.sin(performance.now()/150) > 0);
+      ctx.fillStyle = p.alert ? '#888' : (blink ? '#e2453c' : '#ff9a8f');
+      ctx.beginPath(); ctx.moveTo(-9,-128); ctx.lineTo(9,-128); ctx.lineTo(0,-116); ctx.fill();
+      ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(p.alert ? '警戒' : '要人', 0, -132);
+    }
+  } else {
+    ctx.fillStyle = '#222';
+    ctx.beginPath(); ctx.arc(fx_-3,-96,1.8,0,Math.PI*2); ctx.arc(fx_+4,-96,1.8,0,Math.PI*2); ctx.fill();
+  }
+  if (p.bugged){
+    ctx.fillStyle = '#7dffb0'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('● REC', 0, -118);
+  }
+  ctx.restore();
+}
+
+function drawBag(p){
+  const side = p.dir;
+  ctx.save();
+  if (p.bag === 'back'){
+    ctx.fillStyle = '#4a5a6a'; rr(-side*16-11,-62,22,30,6); ctx.fill();
+    ctx.strokeStyle='#2c3640'; ctx.lineWidth=2; ctx.strokeRect(-side*16-8,-50,16,8);
+  } else if (p.bag === 'brief'){
+    ctx.strokeStyle='#5a3b22'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(-side*12,-60); ctx.lineTo(-side*20,-30); ctx.stroke();
+    ctx.fillStyle = '#6b4426'; rr(-side*20-15,-30,30,22,3); ctx.fill();
+    ctx.fillStyle='#c9a24b'; ctx.fillRect(-side*20-3,-27,6,4);
+  } else if (p.bag === 'shop'){
+    ctx.strokeStyle='#aaa'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(-side*12,-60); ctx.lineTo(-side*20,-36); ctx.stroke();
+    ctx.fillStyle = '#f4f1ea'; rr(-side*20-13,-36,26,30,2); ctx.fill();
+    ctx.fillStyle = '#e2453c'; ctx.fillRect(-side*20-13,-28,26,5);
+  } else if (p.bag === 'tote'){
+    ctx.strokeStyle='#8a7350'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.arc(-side*12,-66,10,Math.PI,0); ctx.stroke();
+    ctx.fillStyle = '#d8c39a'; rr(-side*18-13,-50,26,26,3); ctx.fill();
+  } else {
+    ctx.strokeStyle='#7a3240'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(-side*12,-60); ctx.lineTo(-side*20,-40); ctx.stroke();
+    ctx.fillStyle = '#a8455a'; rr(-side*20-12,-40,24,18,6); ctx.fill();
+  }
+  // 入ったティッシュ
+  if (p.got && p.pocket){
+    const py = Math.max(-78, Math.min(-20, p.pocketY));
+    ctx.fillStyle='#fff'; ctx.strokeStyle='#4aa3df'; ctx.lineWidth=1.5;
+    rr(p.dir*4 - 6, py - 4, 12, 8, 2); ctx.fill(); ctx.stroke();
+  } else if (p.got){
+    const r = bagRect({...p, x:0, y:0, s:1});
+    ctx.fillStyle='#fff'; ctx.strokeStyle='#4aa3df'; ctx.lineWidth=1.5;
+    rr(r.x + r.w/2 - 7, r.y - 6, 14, 9, 2); ctx.fill(); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawHero(){
+  const x = HERO.x, y = HERO.y;
+  const th = heroThrow > 0;
+  ctx.save(); ctx.translate(x,y);
+  ctx.fillStyle = 'rgba(0,0,0,.18)';
+  ctx.beginPath(); ctx.ellipse(0,40,34,8,0,0,Math.PI*2); ctx.fill();
+  // ティッシュの箱
+  ctx.fillStyle = '#4aa3df'; rr(-62,4,38,30,3); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font='bold 9px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('ご自由に', -43, 22);
+  // 脚
+  ctx.fillStyle = '#4d4a45'; ctx.fillRect(-14,0,11,38); ctx.fillRect(3,0,11,38);
+  ctx.fillStyle = '#2a2724'; rr(-17,34,16,7,3); ctx.fill(); rr(1,34,16,7,3); ctx.fill();
+  // くたびれたベージュのジャケット
+  ctx.fillStyle = '#c8b48d'; rr(-24,-58,48,62,10); ctx.fill();
+  ctx.fillStyle = '#efe9dc';
+  ctx.beginPath(); ctx.moveTo(-9,-58); ctx.lineTo(9,-58); ctx.lineTo(0,-38); ctx.fill();
+  // ゆるんだネクタイ
+  ctx.fillStyle = '#6a7c4f';
+  ctx.save(); ctx.translate(2,-48); ctx.rotate(0.18);
+  ctx.fillRect(-3,0,6,26); ctx.beginPath(); ctx.moveTo(-4,26); ctx.lineTo(4,26); ctx.lineTo(0,33); ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle='rgba(0,0,0,.15)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(-14,-20); ctx.lineTo(-6,-14); ctx.moveTo(16,-30); ctx.lineTo(10,-24); ctx.stroke();
+  // 腕
+  ctx.strokeStyle = '#c8b48d'; ctx.lineWidth = 11; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-20,-50); ctx.lineTo(-30,-18); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(20,-50);
+  if (th) ctx.lineTo(30,-84); else ctx.lineTo(32,-24);
+  ctx.stroke();
+  ctx.fillStyle='#f0cfaa';
+  ctx.beginPath(); ctx.arc(-31,-15,5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); th ? ctx.arc(31,-88,5,0,Math.PI*2) : ctx.arc(33,-21,5,0,Math.PI*2); ctx.fill();
+  // 頭
+  ctx.fillStyle = '#f0cfaa';
+  ctx.beginPath(); ctx.arc(0,-78,20,0,Math.PI*2); ctx.fill();
+  // ボサボサ髪
+  ctx.fillStyle = '#2e2a26';
+  ctx.beginPath();
+  ctx.moveTo(-22,-80);
+  const tufts = [[-24,-96],[-14,-104],[-8,-98],[-2,-108],[5,-99],[12,-106],[16,-97],[25,-100],[22,-82]];
+  for (const [a,b] of tufts) ctx.lineTo(a,b);
+  ctx.quadraticCurveTo(0,-90,-22,-80); ctx.fill();
+  // 困り顔
+  ctx.strokeStyle='#222'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(-12,-86); ctx.lineTo(-5,-88); ctx.moveTo(12,-86); ctx.lineTo(5,-88); ctx.stroke();
+  ctx.fillStyle='#222';
+  ctx.beginPath(); ctx.arc(-7,-79,2,0,Math.PI*2); ctx.arc(7,-79,2,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-5,-67); ctx.quadraticCurveTo(0,-70,5,-67); ctx.stroke();
+  // 汗
+  if (susp > 50){
+    ctx.fillStyle='#7cc4f0';
+    ctx.beginPath(); ctx.moveTo(19,-92); ctx.quadraticCurveTo(24,-82,19,-80); ctx.quadraticCurveTo(14,-82,19,-92); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawShot(sh){
+  const k = Math.min(1, sh.t / sh.dur);
+  const x = sh.sx + (sh.tx - sh.sx) * k;
+  const y = sh.sy + (sh.ty - sh.sy) * k - Math.sin(k*Math.PI) * 18;
+  const sc = 1 - k * 0.35 * (1 - (sh.ty - 200) / 400);
+  ctx.save(); ctx.translate(x,y); ctx.rotate(sh.rot); ctx.scale(sc,sc);
+  if (sh.type === 'tissue'){
+    // 手裏剣風ティッシュ
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#4aa3df'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i=0;i<4;i++){
+      const a = i*Math.PI/2;
+      ctx.lineTo(Math.cos(a)*12, Math.sin(a)*12);
+      ctx.lineTo(Math.cos(a+Math.PI/4)*4.5, Math.sin(a+Math.PI/4)*4.5);
+    }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  } else {
+    ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(0,0,7,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#222'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0,-7); ctx.lineTo(0,-14); ctx.stroke();
+    ctx.fillStyle = '#ff3b30'; ctx.beginPath(); ctx.arc(0,0,2.5,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+  // 軌跡
+  ctx.strokeStyle = sh.type === 'tissue' ? 'rgba(255,255,255,.6)' : 'rgba(30,30,30,.35)';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x,y);
+  const k2 = Math.max(0,k-0.25);
+  ctx.lineTo(sh.sx + (sh.tx - sh.sx)*k2, sh.sy + (sh.ty - sh.sy)*k2 - Math.sin(k2*Math.PI)*18);
+  ctx.stroke();
+}
+
+function drawDrop(f){
+  ctx.globalAlpha = Math.max(0, 1 - f.t/1.5);
+  ctx.fillStyle = f.type === 'tissue' ? '#fff' : '#222';
+  ctx.strokeStyle = '#4aa3df'; ctx.lineWidth = 1;
+  ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(0.3);
+  rr(-6,-4,12,8,2); ctx.fill(); if (f.type==='tissue') ctx.stroke();
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function drawPop(f){
+  const a = 1 - f.t/0.9;
+  ctx.globalAlpha = Math.max(0,a);
+  ctx.font = 'bold 16px sans-serif'; ctx.textAlign='center';
+  ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,.7)';
+  const yy = f.y - 10 - f.t*40;
+  ctx.strokeText(f.txt, clampX(f.x), yy);
+  ctx.fillStyle = f.col; ctx.fillText(f.txt, clampX(f.x), yy);
+  ctx.globalAlpha = 1;
+}
+function clampX(x){ return Math.max(70, Math.min(W-70, x)); }
+
+function drawRadio(f){
+  const p = f.p;
+  const r = 10 + f.t * 50;
+  ctx.strokeStyle = `rgba(125,255,176,${1 - f.t/1.6})`; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(p.x, p.y - 40*p.s, r, 0, Math.PI*2); ctx.stroke();
+}
+
+function drawBubble(p){
+  const x = clampX(p.x), y = p.y - 128*p.s - (p.vip ? 14 : 0);
+  ctx.font = 'bold 12px sans-serif'; ctx.textAlign='center';
+  const w = ctx.measureText(p.react).width + 14;
+  ctx.globalAlpha = Math.min(1, p.reactT*2);
+  ctx.fillStyle = '#fff'; rr(x - w/2, y - 18, w, 20, 8); ctx.fill();
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.fillStyle = p.reactCol || '#333'; ctx.fillText(p.react, x, y - 4);
+  ctx.globalAlpha = 1;
+}
+
+function drawHint(){
+  ctx.fillStyle = 'rgba(20,22,28,.75)'; rr(60, 140, 240, 40, 10); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 15px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('上にシュッとスワイプで投げろ！', 180, 160);
+  ctx.font = '11px sans-serif';
+  ctx.fillText('速いほど遠くへ飛ぶ', 180, 175);
+}
+
+function rr(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+
+// ---------- サウンド ----------
+let ac = null;
+function sfx(kind){
+  if (!ac) return;
+  try {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.connect(g); g.connect(ac.destination);
+    const n = ac.currentTime;
+    const set = {
+      throw:['triangle',900,400,.05,.08],
+      in:['square',660,990,.06,.12],
+      bug:['sawtooth',300,1200,.06,.35],
+      bad:['sawtooth',220,110,.07,.25],
+      switch:['sine',500,700,.05,.06],
+      end:['triangle',523,1046,.08,.5],
+    }[kind];
+    o.type = set[0];
+    o.frequency.setValueAtTime(set[1], n);
+    o.frequency.exponentialRampToValueAtTime(set[2], n + set[4]);
+    g.gain.setValueAtTime(set[3], n);
+    g.gain.exponentialRampToValueAtTime(0.0001, n + set[4]);
+    o.start(n); o.stop(n + set[4] + 0.02);
+  } catch(e){}
+}
+
+// ---------- 画面遷移 ----------
+function start(){
+  try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); ac.resume(); } catch(e){}
+  reset();
+  state = 'play';
+  ['hud','susWrap','ammo','obj','brief'].forEach(id => $(id).classList.remove('hidden'));
+  briefT = 2.2;
+  $('title').classList.add('hidden');
+  $('result').classList.add('hidden');
+  updateHud();
+}
+
+function finish(reason){
+  if (state !== 'play') return;
+  state = 'result';
+  endReason = reason;
+  clearTime = LIMIT - t;
+  sfx(reason === 'clear' ? 'end' : 'bad');
+  setTimeout(showResult, 600);
+}
+
+function rankFor(){
+  if (endReason === 'busted') return '正体バレ：ただの不審者';
+  if (endReason === 'timeup') return 'ノルマ未達：ただのバイト';
+  if (clearTime < 12) return '伝説のティッシュ忍者';
+  if (clearTime < 16) return '駅前のシャドウ';
+  if (clearTime < 20) return '一人前のエージェント';
+  if (clearTime < 25) return '見習いエージェント';
+  return 'ギリギリ影山';
+}
+
+// ---------- ティッシュ配り会社の班長 ----------
+function bossSVG(mood){
+  const face = {happy:'#f6cfa6', normal:'#f2cba5', sad:'#f0cba8', angry:'#f19a86'}[mood];
+  const brows = {
+    happy:'<path d="M37 41 q6-5 11 0 M56 41 q6-5 11 0" />',
+    normal:'<path d="M37 41 h11 M56 41 h11" />',
+    sad:'<path d="M37 39 l11 4 M67 39 l-11 4" />',
+    angry:'<path d="M36 37 l12 6 M68 37 l-12 6" />'}[mood];
+  const eyes = mood === 'happy'
+    ? '<path d="M38 49 q4-5 8 0 M58 49 q4-5 8 0" fill="none"/>'
+    : '<circle cx="42" cy="49" r="2.6" fill="#222" stroke="none"/><circle cx="62" cy="49" r="2.6" fill="#222" stroke="none"/>';
+  const mouth = {
+    happy:'<path d="M42 62 q10 12 20 0 z" fill="#8b2b2b"/>',
+    normal:'<path d="M45 64 q7 4 14 0" fill="none"/>',
+    sad:'<path d="M44 67 q8-6 16 0" fill="none"/>',
+    angry:'<path d="M42 62 h20 v7 h-20 z" fill="#8b2b2b"/><path d="M42 65 h20" stroke="#fff" stroke-width="1.5"/>'}[mood];
+  const extra = mood === 'angry'
+    ? '<g stroke="#d02b2b" stroke-width="3" fill="none"><path d="M73 24 l5 5 M80 22 l-2 7 M84 28 l-6 2"/></g>'
+    : mood === 'happy' ? '<g fill="#f5c542" stroke="none"><path d="M12 30 l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/><path d="M90 18 l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></g>'
+    : mood === 'sad' ? '<path d="M70 44 q4 8 0 10 q-4-2 0-10z" fill="#7cc4f0" stroke="none"/>' : '';
+  return `<svg viewBox="0 0 104 150" xmlns="http://www.w3.org/2000/svg">
+    <rect x="22" y="84" width="60" height="62" rx="12" fill="#e2453c"/>
+    <rect x="47" y="84" width="10" height="62" fill="#fff" opacity=".9"/>
+    <text x="34" y="122" font-size="9" font-weight="700" fill="#fff" font-family="sans-serif">ティッシュ</text>
+    <rect x="30" y="98" width="15" height="9" rx="2" fill="#fff"/><text x="37.5" y="105" font-size="6" text-anchor="middle" fill="#e2453c" font-family="sans-serif">班長</text>
+    <circle cx="52" cy="52" r="26" fill="${face}"/>
+    <path d="M24 38 q28-30 56 0 z" fill="#e2453c"/><rect x="20" y="34" width="44" height="6" rx="3" fill="#b8322b"/>
+    <g stroke="#222" stroke-width="2.6" stroke-linecap="round" fill="none">${brows}${eyes}${mouth}</g>
+    <circle cx="34" cy="58" r="4" fill="#f19a86" opacity=".5"/><circle cx="70" cy="58" r="4" fill="#f19a86" opacity=".5"/>
+    ${extra}
+  </svg>`;
+}
+// ---------- 影山（結果画面） ----------
+function kageSVG(mood){
+  const brows = {
+    cool:'<path d="M30 46 l10 -2 M50 42 l12 3"/>',
+    sad:'<path d="M30 44 l10 3 M62 44 l-10 3"/>',
+    panic:'<path d="M29 42 l11 5 M63 42 l-11 5"/>'}[mood];
+  const eyes = mood === 'cool'
+    ? '<path d="M32 53 h7 M52 53 h7"/>'
+    : mood === 'panic'
+      ? '<circle cx="36" cy="53" r="4" fill="#fff"/><circle cx="56" cy="53" r="4" fill="#fff"/><circle cx="36" cy="53" r="1.6" fill="#222" stroke="none"/><circle cx="56" cy="53" r="1.6" fill="#222" stroke="none"/>'
+      : '<circle cx="36" cy="54" r="2.2" fill="#222" stroke="none"/><circle cx="56" cy="54" r="2.2" fill="#222" stroke="none"/>';
+  const mouth = {
+    cool:'<path d="M40 66 q6 3 12 -2" fill="none"/>',
+    sad:'<path d="M40 68 q6 -4 12 0" fill="none"/>',
+    panic:'<path d="M40 64 q6 -3 12 0 q-6 8 -12 0z" fill="#fff"/>'}[mood];
+  const extra = mood === 'panic'
+    ? '<path d="M70 40 q5 9 0 12 q-5 -3 0 -12z" fill="#7cc4f0"/><path d="M18 46 q4 8 0 10 q-4 -2 0 -10z" fill="#7cc4f0"/>'
+    : mood === 'cool' ? '<rect x="64" y="96" width="8" height="12" rx="2" fill="#222"/><circle cx="68" cy="99" r="1.6" fill="#ff3b30"/>' : '';
+  return `<svg viewBox="0 0 92 140" xmlns="http://www.w3.org/2000/svg">
+    <rect x="18" y="80" width="56" height="60" rx="12" fill="#c8b48d"/>
+    <path d="M38 80 h16 l-8 18z" fill="#efe9dc"/>
+    <g transform="rotate(10 46 86)"><rect x="43" y="84" width="6" height="26" fill="#6a7c4f"/><path d="M42 110 h8 l-4 7z" fill="#6a7c4f"/></g>
+    <circle cx="46" cy="54" r="24" fill="#f0cfaa"/>
+    <path d="M20 50 L18 30 L28 22 L33 30 L40 16 L47 28 L55 18 L60 29 L70 22 L72 34 L73 50 Q58 36 46 40 Q32 36 20 50z" fill="#2e2a26"/>
+    <g stroke="#222" stroke-width="2.4" stroke-linecap="round" fill="none">${brows}${eyes}${mouth}</g>
+    ${extra}
+  </svg>`;
+}
+function kageLine(){
+  const pick = a => a[Math.floor(Math.random()*a.length)];
+  if (endReason === 'busted') return {mood:'panic', text: pick([
+    '（まずい…顔に当てたのは計算外だ。撤退する）',
+    '（スパイ人生で一番怒られている…）',
+    '（本部には「ティッシュ配りで正体がバレた」と報告するしかない）'])};
+  if (endReason === 'timeup'){
+    if (bugs < QUOTA_B && tissues >= QUOTA_T) return {mood:'sad', text: pick([
+      '（ティッシュはどうでもいいんだ…盗聴器が足りない）',
+      '（バイトとしては合格、スパイとしては不合格だ…）'])};
+    return {mood:'sad', text: pick([
+      '（ティッシュ配り、スパイ訓練より難しいのでは…？）',
+      '（明日もこの駅に立つのか…潜入は続く）'])};
+  }
+  if (clearTime < 16) return {mood:'cool', text: pick([
+    '（正社員はお断りだ。私の本業は別にある）',
+    '（盗聴器、感度良好。…ティッシュもな）',
+    '（黒くて小さいの？ ただのポケットティッシュですよ）'])};
+  return {mood:'cool', text: pick([
+    '（任務完了。要人の会話はすべて聞かせてもらう）',
+    '（班長は何も気づいていない。完璧な潜入だ）'])};
+}
+
+function bossLine(){
+  const pick = a => a[Math.floor(Math.random()*a.length)];
+  if (endReason === 'busted') return {mood:'angry', text: pick([
+    '影山くん！通行人に投げつけるってどういうこと！？ 駅員さんからクレーム来てるよ！',
+    'ティッシュは「手渡し」！ 手裏剣じゃないの！ 今日はもう帰りなさい！',
+    'お客さんの顔面に当てたって本当！？ うちの会社つぶす気！？'])};
+  if (endReason === 'timeup'){
+    const left = QUOTA_T - Math.min(tissues, QUOTA_T);
+    if (left === 0) return {mood:'sad', text: pick([
+      'ティッシュは全部配れたね！ …え、他にも何か配る予定あったの？',
+      'ノルマは達成してるよ？ なんでそんな悔しそうな顔してるの？'])};
+    if (left <= 3) return {mood:'sad', text: pick([
+      `あと${left}個だったのに〜…惜しい！ 明日もよろしくね。`,
+      `残り${left}個かぁ。うーん、今日は残業して配っていこうか。`])};
+    return {mood:'angry', text: pick([
+      `まだ${left}個も残ってるよ！？ ボーッと突っ立ってただけ？`,
+      `${left}個も余ってるじゃない！ 今日は全部配るまで帰れないよ！`])};
+  }
+  if (clearTime < 16) return {mood:'happy', text: pick([
+    '影山くん…君、何者？ 来月から正社員にならない？',
+    'えっ、もう終わったの！？ 気づいたら全部なくなってたんだけど…',
+    'すごいねぇ！ ところで、なんか黒くて小さいのも配ってた？ …まあいいか！'])};
+  if (clearTime < 25) return {mood:'happy', text: pick([
+    'おー、ノルマ達成！ やればできるじゃない、影山くん。',
+    'お疲れさま！ 配り方がちょっと独特だけど、結果がすべて！'])};
+  return {mood:'normal', text: pick([
+    'ギリギリだねぇ…まあ、達成は達成！ 次はもうちょい早くね。',
+    'ふぅ、ヒヤヒヤしたよ。とりあえず今日の日当は出すね。'])};
+}
+
+let shareText = '';
+function showResult(){
+  ['hud','susWrap','ammo','obj','brief'].forEach(id => $(id).classList.add('hidden'));
+  const acc = throws ? Math.round(hits / throws * 100) : 0;
+  const titles = {clear:'MISSION COMPLETE', busted:'正体がバレた…', timeup:'TIME UP'};
+  $('resTitle').textContent = titles[endReason];
+  $('resTitle').style.color = endReason === 'clear' ? '#7dffb0' : '#ff6b5b';
+  const rank = rankFor();
+  $('resRank').textContent = '称号：' + rank;
+  const bl = bossLine();
+  $('bossFig').className = bl.mood;
+  $('bossFig').innerHTML = bossSVG(bl.mood);
+  $('bossTalk').className = bl.mood;
+  $('bossTalk').innerHTML = '<span class="nm">ティッシュ配り班長</span>' + bl.text;
+  const kl = kageLine();
+  $('kageFig').className = kl.mood;
+  $('kageFig').innerHTML = kageSVG(kl.mood);
+  $('kageTalk').innerHTML = '<span class="nm">影山（心の声）</span>' + kl.text;
+  const main = endReason === 'clear'
+    ? `<span class="big">${clearTime.toFixed(1)} 秒</span>`
+    : `<span class="big">${endReason === 'busted' ? '任務失敗' : 'ノルマ未達'}</span>`;
+  $('resStats').innerHTML = main +
+    `🧻 ティッシュ：${Math.min(tissues,QUOTA_T)} / ${QUOTA_T}<br>` +
+    `📡 盗聴器：${bugs} / ${QUOTA_B}<br>` +
+    `🎯 命中率：${acc}%　最大コンボ：${maxCombo}`;
+  shareText = endReason === 'clear'
+    ? `【エージェント影山】ティッシュ手裏剣\n駅前ティッシュ15個＋要人に盗聴器2個を ${clearTime.toFixed(1)}秒 で完了\n称号：${rank}／命中率${acc}%\n班長「${bl.text}」\n#エージェント影山 #ティッシュ手裏剣`
+    : `【エージェント影山】ティッシュ手裏剣\n${endReason === 'busted' ? '駅前で正体がバレた…' : 'ノルマ未達…'}（ティッシュ${Math.min(tissues,QUOTA_T)}/${QUOTA_T}・盗聴器${bugs}/${QUOTA_B}）\n称号：${rank}\n班長「${bl.text}」\n#エージェント影山 #ティッシュ手裏剣`;
+  $('xBtn').href = 'https://x.com/intent/post?text=' + encodeURIComponent(shareText);
+  $('copied').textContent = '';
+  $('result').classList.remove('hidden');
+}
+
+$('startBtn').addEventListener('click', start);
+$('retryBtn').addEventListener('click', start);
+$('copyBtn').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(shareText); $('copied').textContent = 'コピーしました'; }
+  catch(e){ $('copied').textContent = 'コピーできませんでした'; }
+});
+
+// テスト用フック
+window.__game = { get shots(){return shots;}, get state(){return state;}, get peds(){return peds;}, throwAt, bagRect, toggleAmmo,
+  get stats(){return {t,tissues,bugs,susp,score,ammo};}, start };
+
+function loop(now){
+  const dt = Math.min(0.05, (now - (lastTime || now)) / 1000);
+  lastTime = now;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+resize();
+reset();
+state = 'title';
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
